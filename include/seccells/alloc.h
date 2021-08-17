@@ -31,4 +31,4 @@ seL4_CPtr alloc_slot(seL4_BootInfo *info);
  * @param size of the object to create. Unused if the object is not variably sized.
  * @return a cslot containing the newly created untyped.
  */
-seL4_CPtr alloc_object(seL4_BootInfo *info, seL4_Word type, seL4_Word size_bits);
+seL4_CPtr alloc_object(seL4_BootInfo *info, seL4_Word type, seL4_Word size);

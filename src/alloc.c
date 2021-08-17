@@ -22,7 +22,7 @@ seL4_CPtr alloc_slot(seL4_BootInfo *info)
 
 /* a very simple allocation function that iterates through the untypeds in boot info until
    a retype succeeds */
-seL4_CPtr alloc_object(seL4_BootInfo *info, seL4_Word type, seL4_Word size_bits)
+seL4_CPtr alloc_object(seL4_BootInfo *info, seL4_Word type, seL4_Word size)
 {
     seL4_CPtr cslot = alloc_slot(info);
 
@@ -31,7 +31,15 @@ seL4_CPtr alloc_object(seL4_BootInfo *info, seL4_Word type, seL4_Word size_bits)
     for (seL4_CPtr untyped = info->untyped.start; untyped < info->untyped.end; untyped++) {
         seL4_UntypedDesc *desc = &info->untypedList[untyped - info->untyped.start];
         if (!desc->isDevice) {
-            seL4_Error error = seL4_Untyped_Retype(untyped, type, BIT(size_bits), seL4_CapInitThreadCNode, 0, 0, cslot, 1);
+            seL4_Error error;
+            if (type == seL4_RISCV_RangeObject) {
+                /* For ranges: interpret size as actual size in bytes, rounded up to multiples of MinRangeSize by the
+                   kernel */
+                error = seL4_Untyped_Retype(untyped, type, size, seL4_CapInitThreadCNode, 0, 0, cslot, 1);
+            } else {
+                /* For other objects: interpret size as the number of bits to use for the actual size */
+                error = seL4_Untyped_Retype(untyped, type, BIT(size), seL4_CapInitThreadCNode, 0, 0, cslot, 1);
+            }
             if (error == seL4_NoError) {
                 return cslot;
             } else if (error != seL4_NotEnoughMemory) {
