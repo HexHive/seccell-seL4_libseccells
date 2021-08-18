@@ -10,10 +10,9 @@
 /* Note: even though some of the instructions could be wrapped into static inline functions, macros were deliberately
    chosen to have unified calling conventions (similar to actual assembly instruction syntax). This is not very good
    software engineering practice and should be reworked in the future. */
-#define entry(label)       \
+#define entry()            \
    do {                    \
       asm (                \
-         #label ":   \n\t" \
          "entry"           \
       );                   \
    } while (0)
@@ -27,13 +26,18 @@
       );                                            \
    } while (0)
 
-#define jals(sd_reg, dest_label)    \
-   do {                             \
-      asm volatile (                \
-         "jals %[sd], " #dest_label \
-         : [sd] "+r" (sd_reg)       \
-         :                          \
-      );                            \
+/* Attention: jals first argument is input and output at the same time but using it as output here causes linker issues
+   since the store operation emitted by the compiler messes up offsets to the given label. We just use it as input for
+   now. */
+#define jals(sd_reg, dest_label)             \
+   do {                                      \
+      asm volatile goto (                    \
+         "jals %[sd], %l[" #dest_label "]"   \
+         :                                   \
+         : [sd] "r" (sd_reg)                 \
+         :                                   \
+         : dest_label                        \
+      );                                     \
    } while (0)
 
 #define grant(addr_reg, sd_reg, perms_imm)                                    \
