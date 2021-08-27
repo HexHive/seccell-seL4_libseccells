@@ -31,11 +31,19 @@
  * ####################
  */
 #include <sel4/sel4.h>
+#include "seccells.h"
 
 extern seL4_UserContext **contexts;
 
 void scthreads_init_contexts(seL4_BootInfo *info, void *base_address, unsigned int secdiv_num);
-void scthreads_switch(seL4_Word usid, void *cont_addr);
+void scthreads_set_thread_entry(seL4_Word target_usid, void *entry_point);
+void scthreads_switch(seL4_Word usid);
+
+static inline seL4_UserContext *scthreads_get_current_context(void) {
+    seL4_Word usid;
+    csrr_usid(usid);
+    return contexts[usid];
+}
 #endif
 
 #endif /* SDTHTREADS_H */

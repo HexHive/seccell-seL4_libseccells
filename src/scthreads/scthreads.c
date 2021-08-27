@@ -4,12 +4,8 @@
 
 #include "scthreads.h"
 #include "alloc.h"
-#include "seccells.h"
 
 seL4_UserContext **contexts = 0;
-
-extern void scthreads_save_context(void *cont_addr);
-extern void scthreads_restore_context(void);
 
 void scthreads_init_contexts(seL4_BootInfo *info, void *base_address, unsigned int secdiv_num) {
     /* Currently, only SecDiv 1 (the initial SecDiv) is allowed to initialize the threading contexts */
@@ -70,16 +66,19 @@ void scthreads_init_contexts(seL4_BootInfo *info, void *base_address, unsigned i
     }
 }
 
-seL4_UserContext *scthreads_get_current_context(void) {
-    seL4_Word usid;
-    csrr_usid(usid);
-    return contexts[usid];
-}
+void scthreads_set_thread_entry(seL4_Word target_usid, void *entry_point) {
+    seL4_Word current_usid;
+    csrr_usid(current_usid);
 
-void scthreads_switch(seL4_Word usid, void *cont_addr) {
-    scthreads_save_context(cont_addr);
-    jals(usid, thread_entry);
-thread_entry:
+    grant(&scthreads_set_thread_entry, target_usid, RT_R | RT_W | RT_X);
+    jals(target_usid, target_sd_entry);
+
+target_sd_entry:
     entry();
-    scthreads_restore_context();
+    seL4_UserContext *thread_ctx = scthreads_get_current_context();
+    thread_ctx->ra = (seL4_Word) entry_point;
+    jals(current_usid, initial_sd_entry);
+
+initial_sd_entry:
+    entry();
 }
