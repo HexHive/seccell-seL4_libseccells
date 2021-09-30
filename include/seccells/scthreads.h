@@ -8,13 +8,14 @@
  */
 
 #include <sel4/config.h>
+#include <seccells/gen_config.h>
 /* First of all, make sure we're compiling for 64 bit SecCells systems only */
 #if (__riscv_xlen != 64) || (!defined(CONFIG_RISCV_SECCELL))
 #error "Unsupported system: Please compile for 64 bit RISC-V with SecCells support!"
 #endif
 
-/* 16 kB stack size => can be adapted if necessary */
-#define USER_STACK_SIZE 16384
+/* Default stack size is 64kB => see CMakeLists.txt */
+#define USER_STACK_SIZE CONFIG_SCTHREADS_STACK_SIZE
 
 #ifdef __ASSEMBLER__
 /*

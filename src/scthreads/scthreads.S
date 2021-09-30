@@ -1,4 +1,4 @@
-#include "scthreads.h"
+#include <seccells/scthreads.h>
 
 .section .text
 

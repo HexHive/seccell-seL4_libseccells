@@ -1,9 +1,8 @@
 #include <string.h>
+#include <sel4/sel4.h>
 #include <utils/util.h>
-#include <sel4debug/arch/registers.h>
-
-#include "scthreads.h"
-#include "alloc.h"
+#include <seccells/scthreads.h>
+#include <seccells/alloc.h>
 
 seL4_UserContext **contexts = 0;
 
