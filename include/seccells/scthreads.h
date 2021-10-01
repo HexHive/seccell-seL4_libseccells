@@ -32,7 +32,7 @@
  * ####################
  */
 #include <sel4/sel4.h>
-#include "seccells.h"
+#include <seccells/seccells.h>
 
 extern seL4_UserContext **contexts;
 

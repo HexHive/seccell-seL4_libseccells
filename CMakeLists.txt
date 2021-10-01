@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.7.2)
 
-project(libseccells C ASM)
+project(libseL4seccells C ASM)
 
 set(configure_string "")
 
@@ -20,13 +20,18 @@ file(GLOB_RECURSE
     deps
         src/*.c
         src/*.S
+        src/*.h
 )
 list(SORT deps)
 
-add_library(seccells STATIC EXCLUDE_FROM_ALL ${deps})
+add_library(seL4seccells STATIC EXCLUDE_FROM_ALL ${deps})
 
-target_include_directories(seccells PUBLIC include)
-target_link_libraries(seccells
+# Have public header files (= visible to projects using the library)
+target_include_directories(seL4seccells PUBLIC include)
+# Have private header files (= visible only to the library itself for building)
+target_include_directories(seL4seccells PRIVATE src)
+
+target_link_libraries(seL4seccells
     sel4
     muslc
     utils
