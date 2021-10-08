@@ -38,7 +38,9 @@ extern seL4_UserContext **contexts;
 
 void scthreads_init_contexts(seL4_BootInfo *info, void *base_address, unsigned int secdiv_num);
 void scthreads_set_thread_entry(seL4_Word target_usid, void *entry_point);
-void scthreads_switch(seL4_Word usid);
+void scthreads_switch(seL4_Word target_usid);
+void scthreads_call(seL4_Word target_usid, void *(*start_routine)(void *), void *restrict args);
+void scthreads_return(void);
 
 static inline seL4_UserContext *scthreads_get_current_context(void) {
     seL4_Word usid;

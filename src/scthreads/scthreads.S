@@ -4,7 +4,7 @@
 
 .global scthreads_save_context
 .global scthreads_restore_context
-.global scthreads_switch
+.global scthreads_switch_internal
 .extern contexts
 
 scthreads_save_context:
@@ -13,7 +13,7 @@ scthreads_save_context:
     sd s1, (0*WORDSIZE)(sp)
     sd s2, (1*WORDSIZE)(sp)
     sd s3, (2*WORDSIZE)(sp)
-    /* Calculate offset into context list */
+    /* Calculate offset into context list based on current USID */
     csrr s1, usid
     slli s1, s1, WORDSIZESHIFT
     /* Load context list address and add offset */
@@ -21,8 +21,19 @@ scthreads_save_context:
     add s2, s2, s1
     ld s2, 0(s2)
     /* At this point, we have the address of the context we're looking for in s2 */
-    sd a0,  (1*WORDSIZE)(s2)
-    /* Store original caller sp, not the locally used one (that includes saved a0, s1, s2, s3) */
+    sd a0,  (16*WORDSIZE)(s2)
+    /* In case of returning from thread: need to restore caller USID from context */
+    addi s1, a1, -2
+    bnez s1, .save_context_if_switch_or_call
+.save_context_if_return:
+    /* Load USID to return to */
+    ld a0,  (32*WORDSIZE)(s2)
+.save_context_if_switch_or_call:
+    /* Copy saved ra from stack to context */
+    ld s3,  (3*WORDSIZE)(sp)
+    sd s3,  (1*WORDSIZE)(s2)
+.save_context_endif_return:
+    /* Store original caller sp, not the locally used one (that includes saved s1, s2, s3) */
     addi s3, sp, 4*WORDSIZE
     sd s3,  (2*WORDSIZE)(s2)
     sd gp,  (3*WORDSIZE)(s2)
@@ -42,9 +53,6 @@ scthreads_save_context:
     sd s9,  (13*WORDSIZE)(s2)
     sd s10, (14*WORDSIZE)(s2)
     sd s11, (15*WORDSIZE)(s2)
-    /* Copy previous a0 from the stack into the context */
-    ld s3,  (3*WORDSIZE)(sp)
-    sd s3,  (16*WORDSIZE)(s2)
     sd a1,  (17*WORDSIZE)(s2)
     sd a2,  (18*WORDSIZE)(s2)
     sd a3,  (19*WORDSIZE)(s2)
@@ -68,8 +76,8 @@ scthreads_save_context:
     ret
 
 scthreads_restore_context:
-    /* Clobber s1, s2 - they're restored and overwritten from the saved context anyway */
-    /* Calculate offset into context list */
+    /* Clobber s1, s2, s3 - they're restored and overwritten from the saved context anyway */
+    /* Calculate offset into context list based on current USID */
     csrr s1, usid
     slli s1, s1, WORDSIZESHIFT
     /* Load context list address and add offset */
@@ -77,9 +85,23 @@ scthreads_restore_context:
     add s2, s2, s1
     ld s2, 0(s2)
     /* At this point, we have the address of the context we're looking for in s2 */
-    ld ra,  (1*WORDSIZE)(s2)
     ld sp,  (2*WORDSIZE)(s2)
     ld gp,  (3*WORDSIZE)(s2)
+    /* Differentiate between scthreads_switch, scthreads_call, scthreads_return */
+    addi s3, a1, -1
+    beqz s3, .restore_context_else_if_call
+.restore_context_if_switch_or_return:
+    /* Thread switch or return: restore context */
+    ld ra,  (1*WORDSIZE)(s2)
+    ld a0,  (16*WORDSIZE)(s2)
+    j .restore_context_endif_switch
+.restore_context_else_if_call:
+    /* Call function within other thread: set function address and arguments, save URID for returning */
+    mv ra, a2
+    mv a0, a3
+    csrr s1, urid
+    sd s1,  (32*WORDSIZE)(s2)
+.restore_context_endif_switch:
     ld s0,  (4*WORDSIZE)(s2)
     ld s1,  (5*WORDSIZE)(s2)
     /* Restore s2 only in the end when we don't need it anymore */
@@ -92,7 +114,6 @@ scthreads_restore_context:
     ld s9,  (13*WORDSIZE)(s2)
     ld s10, (14*WORDSIZE)(s2)
     ld s11, (15*WORDSIZE)(s2)
-    ld a0,  (16*WORDSIZE)(s2)
     ld a1,  (17*WORDSIZE)(s2)
     ld a2,  (18*WORDSIZE)(s2)
     ld a3,  (19*WORDSIZE)(s2)
@@ -111,14 +132,16 @@ scthreads_restore_context:
     ld s2,  (6*WORDSIZE)(s2)
     ret
 
-scthreads_switch:
-    /* Store current a0 on the stack => is retrieved again and copied into the context in scthreads_save_context */
+scthreads_switch_internal:
+    /*
+     * a0: target usid
+     * a1: flag: switch (0) or call (1) or return from call (2)?
+     * a2: continuation address (if call)
+     * a3: args pointer (if call)
+     */
     addi sp, sp, -WORDSIZE
-    sd a0, 0(sp)
-    /* Copy ra into a0 as a parameter to scthreads_save_context => allows to continue execution right after switch */
-    mv a0, ra
+    sd ra, 0(sp)
     jal scthreads_save_context
-    ld a0, 0(sp)
     addi sp, sp, WORDSIZE
     jals a0, .switch_sd
 .switch_sd:
