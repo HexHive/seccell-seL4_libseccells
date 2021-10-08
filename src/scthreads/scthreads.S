@@ -90,10 +90,16 @@ scthreads_restore_context:
     /* Differentiate between scthreads_switch, scthreads_call, scthreads_return */
     addi s3, a1, -1
     beqz s3, .restore_context_else_if_call
-.restore_context_if_switch_or_return:
-    /* Thread switch or return: restore context */
+    bgtz s3, .restore_context_else_if_return
+.restore_context_if_switch:
+    /* Thread switch: restore context */
     ld ra,  (1*WORDSIZE)(s2)
     ld a0,  (16*WORDSIZE)(s2)
+    j .restore_context_endif_switch
+.restore_context_else_if_return:
+    /* Thread return: set return value/pointer */
+    ld ra,  (1*WORDSIZE)(s2)
+    mv a0, a4
     j .restore_context_endif_switch
 .restore_context_else_if_call:
     /* Call function within other thread: set function address and arguments, save URID for returning */
@@ -138,6 +144,7 @@ scthreads_switch_internal:
      * a1: flag: switch (0) or call (1) or return from call (2)?
      * a2: continuation address (if call)
      * a3: args pointer (if call)
+     * a4: return value pointer (if return from call)
      */
     addi sp, sp, -WORDSIZE
     sd ra, 0(sp)
