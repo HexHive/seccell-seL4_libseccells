@@ -23,7 +23,7 @@ scthreads_save_context:
     /* At this point, we have the address of the context we're looking for in s2 */
     sd a0,  (16*WORDSIZE)(s2)
     /* In case of returning from thread: need to restore caller USID from context */
-    addi s1, a1, -2
+    addi s1, a3, -2
     bnez s1, .save_context_if_switch_or_call
 .save_context_if_return:
     /* Load USID to return to */
@@ -88,7 +88,7 @@ scthreads_restore_context:
     ld sp,  (2*WORDSIZE)(s2)
     ld gp,  (3*WORDSIZE)(s2)
     /* Differentiate between scthreads_switch, scthreads_call, scthreads_return */
-    addi s3, a1, -1
+    addi s3, a3, -1
     beqz s3, .restore_context_else_if_call
     bgtz s3, .restore_context_else_if_return
 .restore_context_if_switch:
@@ -99,12 +99,12 @@ scthreads_restore_context:
 .restore_context_else_if_return:
     /* Thread return: set return value/pointer */
     ld ra,  (1*WORDSIZE)(s2)
-    mv a0, a4
+    mv a0, a2
     j .restore_context_endif_switch
 .restore_context_else_if_call:
     /* Call function within other thread: set function address and arguments, save URID for returning */
-    mv ra, a2
-    mv a0, a3
+    mv ra, a1
+    mv a0, a2
     csrr s1, urid
     sd s1,  (32*WORDSIZE)(s2)
 .restore_context_endif_switch:
@@ -141,10 +141,9 @@ scthreads_restore_context:
 scthreads_switch_internal:
     /*
      * a0: target usid
-     * a1: flag: switch (0) or call (1) or return from call (2)?
-     * a2: continuation address (if call)
-     * a3: args pointer (if call)
-     * a4: return value pointer (if return from call)
+     * a1: continuation address (if call)
+     * a2: args pointer (if call) or return value pointer (if return)
+     * a3: flag: switch (0) or call (1) or return from call (2)?
      */
     addi sp, sp, -WORDSIZE
     sd ra, 0(sp)

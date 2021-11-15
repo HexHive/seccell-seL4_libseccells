@@ -8,7 +8,7 @@
 seL4_UserContext **contexts = 0;
 
 /* Assembly function prototype - see scthreads.S */
-void scthreads_switch_internal(seL4_Word usid, int flag, void *(*start_routine)(void *), void *restrict args, void *restrict ret);
+void scthreads_switch_internal(seL4_Word usid, void *(*start_routine)(void *), void *restrict args, int flag);
 
 void scthreads_init_contexts(seL4_BootInfo *info, void *base_address, unsigned int secdiv_num) {
     /* Currently, only SecDiv 1 (the initial SecDiv) is allowed to initialize the threading contexts */
@@ -87,16 +87,16 @@ initial_sd_entry:
 }
 
 void *scthreads_call(seL4_Word target_usid, void *(*start_routine)(void *), void *restrict args) {
-    register void *ret asm("a0") = NULL;
-    scthreads_switch_internal(target_usid, 1, start_routine, args, NULL);
+    register void *ret asm("a0");
+    scthreads_switch_internal(target_usid, start_routine, args, 1);
     /* Return value is passed on from scthreads_return */
     return ret;
 }
 
 void scthreads_switch(seL4_Word target_usid) {
-    scthreads_switch_internal(target_usid, 0, NULL, NULL, NULL);
+    scthreads_switch_internal(target_usid, NULL, NULL, 0);
 }
 
 void scthreads_return(void *ret) {
-    scthreads_switch_internal(0, 2, NULL, NULL, ret);
+    scthreads_switch_internal(0, NULL, ret, 2);
 }
