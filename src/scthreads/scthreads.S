@@ -2,8 +2,6 @@
 
 .section .text
 
-.global scthreads_save_context
-.global scthreads_restore_context
 .global scthreads_switch_internal
 .extern contexts
 
@@ -68,10 +66,7 @@ scthreads_save_context:
     sd t5,  (29*WORDSIZE)(s2)
     sd t6,  (30*WORDSIZE)(s2)
     sd tp,  (31*WORDSIZE)(s2)
-    /* Restore s1, s2, s3 from the stack */
-    ld s1, (0*WORDSIZE)(sp)
-    ld s2, (1*WORDSIZE)(sp)
-    ld s3, (2*WORDSIZE)(sp)
+    /* Reset the stack pointer - no register restoring since they will be overwritten by the context restore anyway */
     addi sp, sp, 3*WORDSIZE
     ret
 
