@@ -52,7 +52,7 @@ void scthreads_init_contexts(seL4_BootInfo *info, void *base_address, unsigned i
                                      seL4_RISCV_ExecuteNever);
         ZF_LOGF_IF(error != seL4_NoError, "Failed to map stack @ %p", (void *)vaddr);
         /* Assign stack to context (stack top (i.e., last accessible word) since stack grows downwards) */
-        ctx->sp = vaddr + stack_size - sizeof(seL4_Word);
+        ctx->sp = vaddr + stack_size - 4 * sizeof(seL4_Word);
         vaddr += stack_size;
 
         /* Transfer access privileges only to the SecDiv in question (that is not the initial SecDiv) */

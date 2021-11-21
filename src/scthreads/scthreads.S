@@ -7,10 +7,9 @@
 
 scthreads_save_context:
     /* Save s1, s2, s3 onto the stack so that we can clobber them and easily restore them later on */
-    addi sp, sp, -3*WORDSIZE
-    sd s1, (0*WORDSIZE)(sp)
-    sd s2, (1*WORDSIZE)(sp)
-    sd s3, (2*WORDSIZE)(sp)
+    sd s1, (1*WORDSIZE)(sp)
+    sd s2, (2*WORDSIZE)(sp)
+    sd s3, (3*WORDSIZE)(sp)
     /* Calculate offset into context list based on current USID */
     csrr s1, usid
     slli s1, s1, WORDSIZESHIFT
@@ -22,27 +21,15 @@ scthreads_save_context:
     sd a0,  (16*WORDSIZE)(s2)
     /* In case of returning from thread: need to restore caller USID from context */
     addi s1, a3, -2
-    bnez s1, .save_context_if_switch_or_call
+    bnez s1, .save_context_endif_return
 .save_context_if_return:
     /* Load USID to return to */
     ld a0,  (32*WORDSIZE)(s2)
-.save_context_if_switch_or_call:
-    /* Copy saved ra from stack to context */
-    ld s3,  (3*WORDSIZE)(sp)
-    sd s3,  (1*WORDSIZE)(s2)
 .save_context_endif_return:
-    /* Store original caller sp, not the locally used one (that includes saved s1, s2, s3) */
-    addi s3, sp, 4*WORDSIZE
-    sd s3,  (2*WORDSIZE)(s2)
+    sd sp,  (2*WORDSIZE)(s2)
     sd gp,  (3*WORDSIZE)(s2)
     sd s0,  (4*WORDSIZE)(s2)
-    /* Copy previous s1, s2, s3 from the stack into the context */
-    ld s3,  (0*WORDSIZE)(sp)
-    sd s3,  (5*WORDSIZE)(s2)
-    ld s3,  (1*WORDSIZE)(sp)
-    sd s3,  (6*WORDSIZE)(s2)
-    ld s3,  (2*WORDSIZE)(sp)
-    sd s3,  (7*WORDSIZE)(s2)
+    /* Don't store s1, s2, s3, ra because they're already on the stack */
     sd s4,  (8*WORDSIZE)(s2)
     sd s5,  (9*WORDSIZE)(s2)
     sd s6,  (10*WORDSIZE)(s2)
@@ -66,7 +53,6 @@ scthreads_save_context:
     sd t5,  (29*WORDSIZE)(s2)
     sd t6,  (30*WORDSIZE)(s2)
     sd tp,  (31*WORDSIZE)(s2)
-    /* No register restoring from stack/sp restoring since they will be overwritten by the context restore anyway */
     ret
 
 scthreads_restore_context:
@@ -87,12 +73,12 @@ scthreads_restore_context:
     bgtz s3, .restore_context_else_if_return
 .restore_context_if_switch:
     /* Thread switch: restore context */
-    ld ra,  (1*WORDSIZE)(s2)
+    ld ra,  (0*WORDSIZE)(sp)
     ld a0,  (16*WORDSIZE)(s2)
     j .restore_context_endif_switch
 .restore_context_else_if_return:
     /* Thread return: set return value/pointer */
-    ld ra,  (1*WORDSIZE)(s2)
+    ld ra,  (0*WORDSIZE)(sp)
     mv a0, a2
     j .restore_context_endif_switch
 .restore_context_else_if_call:
@@ -103,9 +89,12 @@ scthreads_restore_context:
     sd s1,  (32*WORDSIZE)(s2)
 .restore_context_endif_switch:
     ld s0,  (4*WORDSIZE)(s2)
-    ld s1,  (5*WORDSIZE)(s2)
-    /* Restore s2 only in the end when we don't need it anymore */
-    ld s3,  (7*WORDSIZE)(s2)
+    /*
+     * s1, s2, s3 were stored on the stack instead of the context due to clobbering - see scthreads_save_context 
+     * Restore s2 only in the end when we don't need it anymore
+     */
+    ld s1, (1*WORDSIZE)(sp)
+    ld s3, (3*WORDSIZE)(sp)
     ld s4,  (8*WORDSIZE)(s2)
     ld s5,  (9*WORDSIZE)(s2)
     ld s6,  (10*WORDSIZE)(s2)
@@ -129,7 +118,8 @@ scthreads_restore_context:
     ld t5,  (29*WORDSIZE)(s2)
     ld t6,  (30*WORDSIZE)(s2)
     ld tp,  (31*WORDSIZE)(s2)
-    ld s2,  (6*WORDSIZE)(s2)
+    ld s2, (2*WORDSIZE)(sp)
+    addi sp, sp, 4*WORDSIZE
     ret
 
 scthreads_switch_internal:
@@ -139,7 +129,7 @@ scthreads_switch_internal:
      * a2: args pointer (if call) or return value pointer (if return)
      * a3: flag: switch (0) or call (1) or return from call (2)?
      */
-    addi sp, sp, -WORDSIZE
+    addi sp, sp, -4*WORDSIZE
     sd ra, 0(sp)
     jal scthreads_save_context
     jals a0, .switch_sd
