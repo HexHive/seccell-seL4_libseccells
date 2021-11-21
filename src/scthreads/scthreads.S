@@ -66,8 +66,7 @@ scthreads_save_context:
     sd t5,  (29*WORDSIZE)(s2)
     sd t6,  (30*WORDSIZE)(s2)
     sd tp,  (31*WORDSIZE)(s2)
-    /* Reset the stack pointer - no register restoring since they will be overwritten by the context restore anyway */
-    addi sp, sp, 3*WORDSIZE
+    /* No register restoring from stack/sp restoring since they will be overwritten by the context restore anyway */
     ret
 
 scthreads_restore_context:
@@ -143,7 +142,6 @@ scthreads_switch_internal:
     addi sp, sp, -WORDSIZE
     sd ra, 0(sp)
     jal scthreads_save_context
-    addi sp, sp, WORDSIZE
     jals a0, .switch_sd
 .switch_sd:
     entry
