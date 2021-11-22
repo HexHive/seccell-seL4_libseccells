@@ -44,8 +44,6 @@ extern seL4_UserContext **contexts;
 
 void scthreads_init_contexts(seL4_BootInfo *info, void *base_address, unsigned int secdiv_num);
 void scthreads_set_thread_entry(seL4_Word target_usid, void *entry_point);
-/* Expose the assembly function as well for low-level access -- scthreads_{call,switch,return} should be preferred */
-void scthreads_switch_internal(seL4_Word usid, void *(*start_routine)(void *), void *restrict args, switch_type_t flag);
 void scthreads_switch(seL4_Word target_usid);
 void *scthreads_call(seL4_Word target_usid, void *(*start_routine)(void *), void *restrict args);
 void scthreads_return(void *ret);

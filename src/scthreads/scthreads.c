@@ -49,7 +49,7 @@ void scthreads_init_contexts(seL4_BootInfo *info, void *base_address, unsigned i
                                      seL4_RISCV_ExecuteNever);
         ZF_LOGF_IF(error != seL4_NoError, "Failed to map stack @ %p", (void *)vaddr);
         /* Assign stack to context (stack top (i.e., last accessible word) since stack grows downwards) */
-        ctx->sp = vaddr + stack_size - 4 * sizeof(seL4_Word);
+        ctx->sp = vaddr + stack_size - 3 * sizeof(seL4_Word);
         vaddr += stack_size;
 
         /* Transfer access privileges only to the SecDiv in question (that is not the initial SecDiv) */
@@ -81,20 +81,4 @@ target_sd_entry:
 
 initial_sd_entry:
     entry();
-}
-
-void __attribute__((optimize(2))) *scthreads_call(seL4_Word target_usid, void *(*start_routine)(void *),
-                                                  void *restrict args) {
-    register void *ret asm("a0");
-    scthreads_switch_internal(target_usid, start_routine, args, SCCALL);
-    /* Return value is passed on from scthreads_return */
-    return ret;
-}
-
-void __attribute__((optimize(2))) scthreads_switch(seL4_Word target_usid) {
-    scthreads_switch_internal(target_usid, NULL, NULL, SCSWITCH);
-}
-
-void __attribute__((optimize(2))) scthreads_return(void *ret) {
-    scthreads_switch_internal(0, NULL, ret, SCRETURN);
 }
