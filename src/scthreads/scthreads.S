@@ -13,18 +13,16 @@ scthreads_call:
      * a1: continuation address
      * a2: args pointer
      */
-    addi sp, sp, -3*WORDSIZE
     /* Save s1, s2, s3 onto the stack so that we can clobber them and easily restore them later on */
-    sd s1,  (0*WORDSIZE)(sp)
-    sd s2,  (1*WORDSIZE)(sp)
-    sd s3,  (2*WORDSIZE)(sp)
-    /* Calculate offset into context list based on current USID */
+    sd s1,  (-1*WORDSIZE)(sp)
+    sd s2,  (-2*WORDSIZE)(sp)
+    sd s3,  (-3*WORDSIZE)(sp)
+    /* Calculate offset into context array based on current USID */
     csrr s1, usid
-    slli s1, s1, WORDSIZESHIFT
-    /* Load context list address and add offset */
+    slli s1, s1, CONTEXT_SIZE_BITS
+    /* Load context base address and add offset */
     ld s3, contexts
     add s2, s3, s1
-    ld s2, 0(s2)
     /* At this point, we have the address of the context we're looking for in s2 */
     sd ra,  (1*WORDSIZE)(s2)
     sd sp,  (2*WORDSIZE)(s2)
@@ -61,12 +59,11 @@ scthreads_call:
 .call_switch:
     entry
 
-    /* Calculate offset into context list based on current USID */
+    /* Calculate offset into context array based on current USID */
     csrr s1, usid
-    slli s1, s1, WORDSIZESHIFT
-    /* Load context list address and add offset (still have pointer to context list in s3) */
+    slli s1, s1, CONTEXT_SIZE_BITS
+    /* Add offset to context array base (still have pointer to context array in s3) */
     add s2, s3, s1
-    ld s2, 0(s2)
     /* Call function within other thread: set function address and arguments, save URID for returning */
     mv ra, a1
     mv a0, a2
@@ -80,8 +77,8 @@ scthreads_call:
      * s1, s2, s3 were stored on the stack instead of the context due to clobbering
      * Restore s2 only in the end when we don't need it anymore
      */
-    ld s1,  (0*WORDSIZE)(sp)
-    ld s3,  (2*WORDSIZE)(sp)
+    ld s1,  (-1*WORDSIZE)(sp)
+    ld s3,  (-3*WORDSIZE)(sp)
     ld s4,  (8*WORDSIZE)(s2)
     ld s5,  (9*WORDSIZE)(s2)
     ld s6,  (10*WORDSIZE)(s2)
@@ -105,25 +102,22 @@ scthreads_call:
     ld t5,  (29*WORDSIZE)(s2)
     ld t6,  (30*WORDSIZE)(s2)
     ld tp,  (31*WORDSIZE)(s2)
-    ld s2,  (1*WORDSIZE)(sp)
-    addi sp, sp, 3*WORDSIZE
+    ld s2,  (-2*WORDSIZE)(sp)
     ret
 
 
 scthreads_return:
     /* a0: return value (pointer) */
-    addi sp, sp, -3*WORDSIZE
     /* Save s1, s2, s3 onto the stack so that we can clobber them and easily restore them later on */
-    sd s1,  (0*WORDSIZE)(sp)
-    sd s2,  (1*WORDSIZE)(sp)
-    sd s3,  (2*WORDSIZE)(sp)
-    /* Calculate offset into context list based on current USID */
+    sd s1,  (-1*WORDSIZE)(sp)
+    sd s2,  (-2*WORDSIZE)(sp)
+    sd s3,  (-3*WORDSIZE)(sp)
+    /* Calculate offset into context array based on current USID */
     csrr s1, usid
-    slli s1, s1, WORDSIZESHIFT
-    /* Load context list address and add offset */
+    slli s1, s1, CONTEXT_SIZE_BITS
+    /* Load context base address and add offset */
     ld s3, contexts
     add s2, s3, s1
-    ld s2, 0(s2)
     /* At this point, we have the address of the context we're looking for in s2 */
     sd ra,  (1*WORDSIZE)(s2)
     sd sp,  (2*WORDSIZE)(s2)
@@ -164,10 +158,9 @@ scthreads_return:
 
     /* Calculate offset into context list based on current USID */
     csrr s1, usid
-    slli s1, s1, WORDSIZESHIFT
-    /* Load context list address and add offset (still have pointer to context list in s3) */
+    slli s1, s1, CONTEXT_SIZE_BITS
+    /* Add offset to context array base (still have pointer to context array in s3) */
     add s2, s3, s1
-    ld s2, 0(s2)
     /* At this point, we have the address of the context we're looking for in s2 */
     ld ra,  (1*WORDSIZE)(s2)
     ld sp,  (2*WORDSIZE)(s2)
@@ -177,8 +170,8 @@ scthreads_return:
      * s1, s2, s3 were stored on the stack instead of the context due to clobbering
      * Restore s2 only in the end when we don't need it anymore
      */
-    ld s1,  (0*WORDSIZE)(sp)
-    ld s3,  (2*WORDSIZE)(sp)
+    ld s1,  (-1*WORDSIZE)(sp)
+    ld s3,  (-3*WORDSIZE)(sp)
     ld s4,  (8*WORDSIZE)(s2)
     ld s5,  (9*WORDSIZE)(s2)
     ld s6,  (10*WORDSIZE)(s2)
@@ -203,25 +196,22 @@ scthreads_return:
     ld t5,  (29*WORDSIZE)(s2)
     ld t6,  (30*WORDSIZE)(s2)
     ld tp,  (31*WORDSIZE)(s2)
-    ld s2,  (1*WORDSIZE)(sp)
-    addi sp, sp, 3*WORDSIZE
+    ld s2,  (-2*WORDSIZE)(sp)
     ret
 
 
 scthreads_switch:
     /* a0: target usid */
-    addi sp, sp, -3*WORDSIZE
     /* Save s1, s2, s3 onto the stack so that we can clobber them and easily restore them later on */
-    sd s1,  (0*WORDSIZE)(sp)
-    sd s2,  (1*WORDSIZE)(sp)
-    sd s3,  (2*WORDSIZE)(sp)
-    /* Calculate offset into context list based on current USID */
+    sd s1,  (-1*WORDSIZE)(sp)
+    sd s2,  (-2*WORDSIZE)(sp)
+    sd s3,  (-3*WORDSIZE)(sp)
+    /* Calculate offset into context array based on current USID */
     csrr s1, usid
-    slli s1, s1, WORDSIZESHIFT
-    /* Load context list address and add offset */
+    slli s1, s1, CONTEXT_SIZE_BITS
+    /* Load context base address and add offset */
     ld s3, contexts
     add s2, s3, s1
-    ld s2, 0(s2)
     /* At this point, we have the address of the context we're looking for in s2 */
     sd ra,  (1*WORDSIZE)(s2)
     sd sp,  (2*WORDSIZE)(s2)
@@ -260,10 +250,9 @@ scthreads_switch:
 
     /* Calculate offset into context list based on current USID */
     csrr s1, usid
-    slli s1, s1, WORDSIZESHIFT
-    /* Load context list address and add offset (still have pointer to context list in s3) */
+    slli s1, s1, CONTEXT_SIZE_BITS
+    /* Add offset to context array base (still have pointer to context array in s3) */
     add s2, s3, s1
-    ld s2, 0(s2)
     /* At this point, we have the address of the context we're looking for in s2 */
     ld ra,  (1*WORDSIZE)(s2)
     ld sp,  (2*WORDSIZE)(s2)
@@ -273,8 +262,8 @@ scthreads_switch:
      * s1, s2, s3 were stored on the stack instead of the context due to clobbering
      * Restore s2 only in the end when we don't need it anymore
      */
-    ld s1,  (0*WORDSIZE)(sp)
-    ld s3,  (2*WORDSIZE)(sp)
+    ld s1,  (-1*WORDSIZE)(sp)
+    ld s3,  (-3*WORDSIZE)(sp)
     ld s4,  (8*WORDSIZE)(s2)
     ld s5,  (9*WORDSIZE)(s2)
     ld s6,  (10*WORDSIZE)(s2)
@@ -299,6 +288,5 @@ scthreads_switch:
     ld t5,  (29*WORDSIZE)(s2)
     ld t6,  (30*WORDSIZE)(s2)
     ld tp,  (31*WORDSIZE)(s2)
-    ld s2,  (1*WORDSIZE)(sp)
-    addi sp, sp, 3*WORDSIZE
+    ld s2,  (-2*WORDSIZE)(sp)
     ret

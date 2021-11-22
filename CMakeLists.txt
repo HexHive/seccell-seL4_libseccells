@@ -5,11 +5,12 @@ project(libseL4seccells C ASM)
 set(configure_string "")
 
 config_string(
-    LibSCThreadsStackSize
-    SCTHREADS_STACK_SIZE
-    "Size of stacks in bytes to allocate for each SCThread"
+    LibSCThreadsContextSizeBits
+    SCTHREADS_CONTEXT_SIZE_BITS
+    "Bits for the size of the context to allocate for each SCThread. Size will be (1 << LibSCThreadsContextSizeBits).
+     This influences the stack size since stack size is (context_size - sizeof(seL4_UserContext))"
     DEFAULT
-    65536
+    16
     UNQUOTE
 )
 
@@ -37,4 +38,3 @@ target_link_libraries(seL4seccells
     utils
     seccells_Config
 )
-
