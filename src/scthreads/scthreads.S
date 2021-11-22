@@ -9,19 +9,20 @@
 
 scthreads_call:
     /*
-     * a0: target usid
+     * a0: args pointer
      * a1: continuation address
-     * a2: args pointer
+     * a2: target usid
      */
-    /* Save s1, s2, s3 onto the stack so that we can clobber them and easily restore them later on */
+    /*
+     * Calculate offset into context array based on current USID, load context base address and add offset
+     * Save s1, s2, s3 onto the stack so that we can clobber them and easily restore them later on
+     */
     sd s1,  (-1*WORDSIZE)(sp)
-    sd s2,  (-2*WORDSIZE)(sp)
     sd s3,  (-3*WORDSIZE)(sp)
-    /* Calculate offset into context array based on current USID */
     csrr s1, usid
-    slli s1, s1, CONTEXT_SIZE_BITS
-    /* Load context base address and add offset */
     ld s3, contexts
+    slli s1, s1, CONTEXT_SIZE_BITS
+    sd s2,  (-2*WORDSIZE)(sp)
     add s2, s3, s1
     /* At this point, we have the address of the context we're looking for in s2 */
     sd ra,  (1*WORDSIZE)(s2)
@@ -55,7 +56,7 @@ scthreads_call:
     sd tp,  (31*WORDSIZE)(s2)
 
     /* Do the actual compartment switch */
-    jals a0, .call_switch
+    jals a2, .call_switch
 .call_switch:
     entry
 
@@ -65,11 +66,10 @@ scthreads_call:
     /* Add offset to context array base (still have pointer to context array in s3) */
     add s2, s3, s1
     /* Call function within other thread: set function address and arguments, save URID for returning */
-    mv ra, a1
-    mv a0, a2
     csrr s1, urid
     sd s1,  (32*WORDSIZE)(s2)
     /* At this point, we have the address of the context we're looking for in s2 */
+    ld ra,  (2*WORDSIZE)(s2)
     ld sp,  (2*WORDSIZE)(s2)
     ld gp,  (3*WORDSIZE)(s2)
     ld s0,  (4*WORDSIZE)(s2)
@@ -87,7 +87,7 @@ scthreads_call:
     ld s9,  (13*WORDSIZE)(s2)
     ld s10, (14*WORDSIZE)(s2)
     ld s11, (15*WORDSIZE)(s2)
-    ld a1,  (17*WORDSIZE)(s2)
+    /* Don't restore a0, a1 because that is where we jump to + arguments */
     ld a2,  (18*WORDSIZE)(s2)
     ld a3,  (19*WORDSIZE)(s2)
     ld a4,  (20*WORDSIZE)(s2)
@@ -103,22 +103,26 @@ scthreads_call:
     ld t6,  (30*WORDSIZE)(s2)
     ld tp,  (31*WORDSIZE)(s2)
     ld s2,  (-2*WORDSIZE)(sp)
-    ret
+    jr a1
 
 
 scthreads_return:
     /* a0: return value (pointer) */
-    /* Save s1, s2, s3 onto the stack so that we can clobber them and easily restore them later on */
+    /*
+     * Calculate offset into context array based on current USID, load context base address and add offset
+     * Save s1, s2, s3 onto the stack so that we can clobber them and easily restore them later on
+     */
     sd s1,  (-1*WORDSIZE)(sp)
-    sd s2,  (-2*WORDSIZE)(sp)
     sd s3,  (-3*WORDSIZE)(sp)
-    /* Calculate offset into context array based on current USID */
     csrr s1, usid
-    slli s1, s1, CONTEXT_SIZE_BITS
-    /* Load context base address and add offset */
     ld s3, contexts
+    slli s1, s1, CONTEXT_SIZE_BITS
+    sd s2,  (-2*WORDSIZE)(sp)
     add s2, s3, s1
     /* At this point, we have the address of the context we're looking for in s2 */
+    /* Load USID to return to */
+    ld a1,  (32*WORDSIZE)(s2)
+    /* Actually store the registers into the context */
     sd ra,  (1*WORDSIZE)(s2)
     sd sp,  (2*WORDSIZE)(s2)
     sd gp,  (3*WORDSIZE)(s2)
@@ -148,8 +152,6 @@ scthreads_return:
     sd t5,  (29*WORDSIZE)(s2)
     sd t6,  (30*WORDSIZE)(s2)
     sd tp,  (31*WORDSIZE)(s2)
-    /* Load USID to return to */
-    ld a1,  (32*WORDSIZE)(s2)
 
     /* Do the actual compartment switch */
     jals a1, .return_switch
@@ -202,15 +204,16 @@ scthreads_return:
 
 scthreads_switch:
     /* a0: target usid */
-    /* Save s1, s2, s3 onto the stack so that we can clobber them and easily restore them later on */
+    /*
+     * Calculate offset into context array based on current USID, load context base address and add offset
+     * Save s1, s2, s3 onto the stack so that we can clobber them and easily restore them later on
+     */
     sd s1,  (-1*WORDSIZE)(sp)
-    sd s2,  (-2*WORDSIZE)(sp)
     sd s3,  (-3*WORDSIZE)(sp)
-    /* Calculate offset into context array based on current USID */
     csrr s1, usid
-    slli s1, s1, CONTEXT_SIZE_BITS
-    /* Load context base address and add offset */
     ld s3, contexts
+    slli s1, s1, CONTEXT_SIZE_BITS
+    sd s2,  (-2*WORDSIZE)(sp)
     add s2, s3, s1
     /* At this point, we have the address of the context we're looking for in s2 */
     sd ra,  (1*WORDSIZE)(s2)
