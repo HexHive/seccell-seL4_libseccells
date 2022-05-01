@@ -118,4 +118,13 @@
       );                            \
    } while (0)
 
+#define csrr_urid(urid_reg)         \
+   do {                             \
+      asm (                         \
+         "csrr %[urid], urid"       \
+         : [urid] "=r" (urid_reg)   \
+         :                          \
+      );                            \
+   } while (0)
+
 #endif /* SECCELLS_H */
