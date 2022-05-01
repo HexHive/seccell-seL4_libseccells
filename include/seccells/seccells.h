@@ -12,7 +12,7 @@
    software engineering practice and should be reworked in the future. */
 #define entry()            \
    do {                    \
-      asm (                \
+      asm volatile (       \
          "entry"           \
       );                   \
    } while (0)
@@ -102,7 +102,7 @@
    do {                                                              \
       /* Attention: variable might shadow name from outer scope */   \
       uint64_t tmp_perms = (perms_imm);                              \
-      asm (                                                          \
+      asm volatile (                                                 \
          "excl %[exc], %[addr], %[perms]"                            \
          : [exc] "=r" (excl_flag)                                    \
          : [addr] "r" (addr_reg), [perms] "r" (tmp_perms)            \
@@ -111,7 +111,7 @@
 
 #define csrr_usid(usid_reg)         \
    do {                             \
-      asm (                         \
+      asm volatile (                \
          "csrr %[usid], usid"       \
          : [usid] "=r" (usid_reg)   \
          :                          \
@@ -120,7 +120,7 @@
 
 #define csrr_urid(urid_reg)         \
    do {                             \
-      asm (                         \
+      asm volatile (                \
          "csrr %[urid], urid"       \
          : [urid] "=r" (urid_reg)   \
          :                          \
